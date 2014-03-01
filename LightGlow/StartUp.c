@@ -7,14 +7,14 @@
 #include <timer.h>
 
 //#define GPIO_TEST       //all GPIOs digital and high
-#define GPIO_BLINK      //all GPIOs digital and blink every half second
+//#define GPIO_BLINK      //all GPIOs digital and blink every half second
 //#define UART_ENABLED
 
 //function declarations
-void OpenTimer1( unsigned int config, unsigned int period);
-void ConfigIntTimer1(unsigned int config);
-void WriteTimer1( unsigned int timer);
-void OpenUART1(unsigned int config1,unsigned int config2, unsigned int ubrg);
+//void OpenTimer1( unsigned int config, unsigned int period);
+//void ConfigIntTimer1(unsigned int config);
+//void WriteTimer1( unsigned int timer);
+//void OpenUART1(unsigned int config1,unsigned int config2, unsigned int ubrg);
 
 void StartUp (void)
 {
@@ -25,6 +25,7 @@ void StartUp (void)
     AD1PCFGL = 0xFFFF;
     LATA = 0xFFFF;
     LATB = 0xFFFF;
+    while(1);
 #endif
 
 #ifdef GPIO_BLINK
@@ -48,6 +49,7 @@ void StartUp (void)
             ,
             39062       //proc every quarter second
             );
+    while(1);
 #endif
 
 #ifdef UART_ENABLED
@@ -78,6 +80,5 @@ void StartUp (void)
     printf("UART_DEBUG_TEST_PRINTF\n");
 #endif
 
-    while(1);
     return;
 }

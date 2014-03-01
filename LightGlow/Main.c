@@ -18,9 +18,13 @@
 #include <Generic.h>
 #include <p24hxxxx.h>
 #include <uart.h>
+#include <pps.h>
+#include <outcompare.h>
+#include <timer.h>
 
 void StartUp (void);
 void Chip_Go_Fast(void);
+
 
 _FBS( BWRP_WRPROTECT_OFF )
 _FSS( SWRP_WRPROTECT_OFF )
@@ -29,13 +33,50 @@ _FOSCSEL( FNOSC_FRCPLL  & IESO_OFF )
 _FOSC( POSCMD_HS & OSCIOFNC_OFF & IOL1WAY_OFF & FCKSM_CSDCMD )
 _FWDT( WDTPOST_PS8192 & WDTPRE_PR32 & WINDIS_OFF & FWDTEN_OFF)
 _FPOR( FPWRT_PWR128 & ALTI2C_ON )
-_FICD( ICS_PGD1 & JTAGEN_OFF )
+_FICD
+( ICS_PGD1 & JTAGEN_OFF )
 
 int main(int argc, char** argv) {
 
     Chip_Go_Fast();     //max out chipspeed
     StartUp();      //run a setup of chosen modules and debug states (see "StartUp.c")
 
+    TRISA = 0;
+    TRISB = 0;
+    AD1PCFGL = 0xFFFF;
+    //LATA = 0x0;
+    //LATB = 0xFFFF;
+ 
+    PPSUnLock;
+    PPSOutput(OUT_FN_PPS_OC1, OUT_PIN_PPS_RP7);
+    PPSLock;
+\
+    OpenOC1(OC_IDLE_CON &
+            OC_TIMER2_SRC &
+            OC_PWM_FAULT_PIN_DISABLE &
+            OC_CONTINUE_PULSE
+            ,
+            100    //
+            ,
+            50
+            );
+    
+    OpenTimer2(T2_ON &
+            T2_IDLE_CON &
+            T2_GATE_OFF &
+            T2_PS_1_8 &
+            T2_SOURCE_INT
+            ,
+            0xFF
+            );
+
+    ConfigIntTimer2(
+            T2_INT_PRIOR_1 &
+            T2_INT_ON
+            );
+ 
+ 
+    while(1);
     return (EXIT_SUCCESS);
 }
 
@@ -58,13 +99,26 @@ inline void Chip_Go_Fast()      /*Maxs out the chip speed. Blocking*/
 //////////
 //ISR/////
 //////////
+/*
+void __attribute__ ((auto_psv))     _ISR    _T2Interrupt(void)
+{
+    _T2IF = 0;
 
+    LATA ^= 0xFFFF;
+
+    return;
+}
+*/
+
+/*
 void __attribute__ ((auto_psv))     _ISR    _T1Interrupt(void)
 {
     _T1IF = 0;          //clear interrupt flag
     
     LATA ^= 0xFFFF;     //XOR latch with HIGH
     LATB ^= 0xFFFF;     //XOR latch with HIGH
-                    //*is this innacurate at high frequency due to reading the latch rather than the port
+                    // *is this innacurate at high frequency due to reading the latch rather than the port
     return;
 }
+ */
+
