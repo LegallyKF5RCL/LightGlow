@@ -25,6 +25,10 @@
 void StartUp (void);
 void Chip_Go_Fast(void);
 
+//
+#define INCREMENT_PERIOD 30000
+#define TIMER_COUNT     10000
+//
 
 _FBS( BWRP_WRPROTECT_OFF )
 _FSS( SWRP_WRPROTECT_OFF )
@@ -44,9 +48,11 @@ int main(int argc, char** argv) {
     TRISA = 0;
     TRISB = 0;
     AD1PCFGL = 0xFFFF;
-    //LATA = 0x0;
-    //LATB = 0xFFFF;
- 
+    LATA = 0x0000;
+    LATB = 0x0000;
+    LATBbits.LATB6 = 1;
+    
+
     PPSUnLock;
     PPSOutput(OUT_FN_PPS_OC1, OUT_PIN_PPS_RP7);
     PPSLock;
@@ -56,9 +62,9 @@ int main(int argc, char** argv) {
             OC_PWM_FAULT_PIN_DISABLE &
             OC_CONTINUE_PULSE
             ,
-            100    //
+            0    //this value doesnt matter in PWM, but cant be larger than value 2
             ,
-            50
+            1000    //the Timer_Period - This_Number = Duty_Cycle
             );
     
     OpenTimer2(T2_ON &
@@ -67,14 +73,28 @@ int main(int argc, char** argv) {
             T2_PS_1_8 &
             T2_SOURCE_INT
             ,
-            0xFF
+            TIMER_COUNT
+            );
+
+    OpenTimer3(T3_ON &
+            T3_IDLE_CON &
+            T3_GATE_OFF &
+            T3_PS_1_256 &
+            T3_SOURCE_INT
+            ,
+            INCREMENT_PERIOD
             );
 
     ConfigIntTimer2(
-            T2_INT_PRIOR_1 &
+            T2_INT_PRIOR_5 &
             T2_INT_ON
             );
- 
+
+//    ConfigIntTimer3(
+//            T3_INT_PRIOR_0 &
+//            T3_INT_ON
+//            );
+
  
     while(1);
     return (EXIT_SUCCESS);
@@ -99,26 +119,34 @@ inline void Chip_Go_Fast()      /*Maxs out the chip speed. Blocking*/
 //////////
 //ISR/////
 //////////
-/*
-void __attribute__ ((auto_psv))     _ISR    _T2Interrupt(void)
+
+void __attribute__ ((auto_psv))     _ISR    _T3Interrupt(void)
 {
-    _T2IF = 0;
+    static WORD 
+    _T3IF = 0;
 
-    LATA ^= 0xFFFF;
-
-    return;
-}
-*/
-
-/*
-void __attribute__ ((auto_psv))     _ISR    _T1Interrupt(void)
-{
-    _T1IF = 0;          //clear interrupt flag
+    if(OC1R >= TIMER_COUNT)
     
-    LATA ^= 0xFFFF;     //XOR latch with HIGH
-    LATB ^= 0xFFFF;     //XOR latch with HIGH
-                    // *is this innacurate at high frequency due to reading the latch rather than the port
     return;
 }
- */
+
+//for some reason this breaks PWM
+//void __attribute__ ((auto_psv))     _ISR    _T2Interrupt(void)
+//{
+//    _T2IF = 0;
+//
+//    return;
+//}
+
+
+//void __attribute__ ((auto_psv))     _ISR    _T1Interrupt(void)
+//{
+//    _T1IF = 0;          //clear interrupt flag
+//
+//    LATA ^= 0xFFFF;     //XOR latch with HIGH
+//    LATB ^= 0xFFFF;     //XOR latch with HIGH
+//
+//    return;
+//}
+
 

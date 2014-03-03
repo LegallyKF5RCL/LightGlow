@@ -36,7 +36,7 @@ void StartUp (void)
     LATB = 0xFFFF;      //write HIGH to all B latches
     AD1PCFGL = 0xFFFF;      //make all gpios digital
 
-    ConfigIntTimer1(T1_INT_PRIOR_1 &
+    ConfigIntTimer1(T1_INT_PRIOR_5 &
                 T1_INT_ON
                 );
 
