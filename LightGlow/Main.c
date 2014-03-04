@@ -25,9 +25,12 @@
 void StartUp (void);
 void Chip_Go_Fast(void);
 
+static WORD Direction = 0;  //this needs to made into the label thing that i forgot about because I havent programmed in so long because ANALOG CLASSESSSSSSSSFACKKKKKKK
+
+
 //
 #define INCREMENT_PERIOD 30000
-#define TIMER_COUNT     10000
+#define TIMER_COUNT     100
 //
 
 _FBS( BWRP_WRPROTECT_OFF )
@@ -50,7 +53,7 @@ int main(int argc, char** argv) {
     AD1PCFGL = 0xFFFF;
     LATA = 0x0000;
     LATB = 0x0000;
-    LATBbits.LATB6 = 1;
+    //LATBbits.LATB6 = 1;
     
 
     PPSUnLock;
@@ -59,15 +62,34 @@ int main(int argc, char** argv) {
 \
     OpenOC1(OC_IDLE_CON &
             OC_TIMER2_SRC &
-            OC_PWM_FAULT_PIN_DISABLE &
+            OC_PWM_FAULT_PIN_ENABLE &
             OC_CONTINUE_PULSE
             ,
             0    //this value doesnt matter in PWM, but cant be larger than value 2
             ,
-            1000    //the Timer_Period - This_Number = Duty_Cycle
+            95    //the Timer_Period - This_Number = Duty_Cycle
             );
     
-    OpenTimer2(T2_ON &
+    
+
+    OpenTimer1(
+            T1_ON &
+            T1_IDLE_CON &
+            T1_GATE_OFF &
+            T1_PS_1_256 &
+            T1_SYNC_EXT_OFF &
+            T1_SOURCE_INT
+            ,
+            3000       //bout a quarter second
+            );
+
+    ConfigIntTimer1(
+            T1_INT_PRIOR_2 &
+            T1_INT_ON
+            );
+
+    OpenTimer2(
+            T2_ON &
             T2_IDLE_CON &
             T2_GATE_OFF &
             T2_PS_1_8 &
@@ -76,32 +98,23 @@ int main(int argc, char** argv) {
             TIMER_COUNT
             );
 
-    OpenTimer3(T3_ON &
-            T3_IDLE_CON &
-            T3_GATE_OFF &
-            T3_PS_1_256 &
-            T3_SOURCE_INT
-            ,
-            INCREMENT_PERIOD
-            );
-
     ConfigIntTimer2(
             T2_INT_PRIOR_5 &
             T2_INT_ON
             );
 
-//    ConfigIntTimer3(
-//            T3_INT_PRIOR_0 &
-//            T3_INT_ON
-//            );
 
- 
+    
+
+    //OC1R = 5000;
+
     while(1);
     return (EXIT_SUCCESS);
 }
 
 inline void Chip_Go_Fast()      /*Maxs out the chip speed. Blocking*/
 {
+
     // Configure PLL prescaler, PLL postscaler, PLL divisor
         PLLFBD = 41; // M = 43
         CLKDIVbits.PLLPOST = 0; // N2 = 2
@@ -120,33 +133,40 @@ inline void Chip_Go_Fast()      /*Maxs out the chip speed. Blocking*/
 //ISR/////
 //////////
 
-void __attribute__ ((auto_psv))     _ISR    _T3Interrupt(void)
-{
-    static WORD 
-    _T3IF = 0;
 
-    if(OC1R >= TIMER_COUNT)
-    
+//for some reason this breaks PWM
+void __attribute__ ((auto_psv))     _ISR    _T2Interrupt(void)
+{
+    _T2IF = 0;
+
     return;
 }
 
-//for some reason this breaks PWM
-//void __attribute__ ((auto_psv))     _ISR    _T2Interrupt(void)
-//{
-//    _T2IF = 0;
-//
-//    return;
-//}
 
+void __attribute__ ((auto_psv))     _ISR    _T1Interrupt(void)
+{
+    _T1IF = 0;          //clear interrupt flag
 
-//void __attribute__ ((auto_psv))     _ISR    _T1Interrupt(void)
-//{
-//    _T1IF = 0;          //clear interrupt flag
-//
-//    LATA ^= 0xFFFF;     //XOR latch with HIGH
-//    LATB ^= 0xFFFF;     //XOR latch with HIGH
-//
-//    return;
-//}
+    //LATA ^= 0xFFFF;
+
+    if(Direction == 0)
+    {
+        OC1R = OC1R - 1;
+        if(OC1R <= (TIMER_COUNT >> 2))
+        {
+            Direction = 1;
+        }
+    }
+    else if(Direction == 1)
+    {
+        OC1R = OC1R + 1;
+        if(OC1R >= (TIMER_COUNT))
+        {
+            Direction = 0;
+        }
+    }
+
+    return;
+}
 
 
