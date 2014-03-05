@@ -29,8 +29,8 @@ static WORD Direction = 0;  //this needs to made into the label thing that i for
 
 
 //
-#define INCREMENT_PERIOD 30000
-#define TIMER_COUNT     100
+#define INCREMENT_PERIOD 1000
+#define TIMER_COUNT     200
 //
 
 _FBS( BWRP_WRPROTECT_OFF )
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
             T1_SYNC_EXT_OFF &
             T1_SOURCE_INT
             ,
-            3000       //bout a quarter second
+            INCREMENT_PERIOD       //bout a quarter second
             );
 
     ConfigIntTimer1(
@@ -152,7 +152,7 @@ void __attribute__ ((auto_psv))     _ISR    _T1Interrupt(void)
     if(Direction == 0)
     {
         OC1R = OC1R - 1;
-        if(OC1R <= (TIMER_COUNT >> 2))
+        if(OC1R <= ((TIMER_COUNT >> 2) + (TIMER_COUNT >> 5)))
         {
             Direction = 1;
         }
@@ -160,7 +160,7 @@ void __attribute__ ((auto_psv))     _ISR    _T1Interrupt(void)
     else if(Direction == 1)
     {
         OC1R = OC1R + 1;
-        if(OC1R >= (TIMER_COUNT))
+        if(OC1R >= (TIMER_COUNT - (TIMER_COUNT >> 5)))
         {
             Direction = 0;
         }
